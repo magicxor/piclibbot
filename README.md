@@ -1,6 +1,8 @@
 # piclibbot
 inline image search Telegram bot
 
+[Demo](https://github.com/magicxor/piclibbot/assets/8275793/eefe028d-c7c1-4119-8bed-fda125f0457e)
+
 ### Docker
 
 ```powershell
