@@ -396,3 +396,7 @@ FodyWeavers.xsd
 
 # JetBrains Rider
 *.sln.iml
+
+PicLibBot/.idea/.idea.PicLibBot/.idea/
+
+PicLibBot/PicLibBot/appsettings.json
