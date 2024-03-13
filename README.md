@@ -7,7 +7,7 @@ inline image search Telegram bot
 docker build . --progress=plain --file=PicLibBot/Dockerfile -t piclibbot:latest
 ```
 
-Environment variables: `PICLIBBOT_PicLibBot__TelegramBotApiKey`, `PICLIBBOT_PicLibBot__LibreYApiMirrors__0`, `PICLIBBOT_PicLibBot__LibreYApiMirrors__1`, ...
+Environment variables: `PICLIBBOT_PicLibBot__TelegramBotApiKey`, `PICLIBBOT_PicLibBot__ImagesFetchTimeoutInSeconds`, `PICLIBBOT_PicLibBot__MaxInlineResults`, `PICLIBBOT_PicLibBot__LibreYApiMirrors__0`, `PICLIBBOT_PicLibBot__LibreYApiMirrors__1`, ...
 
 ### Configuration
 ```

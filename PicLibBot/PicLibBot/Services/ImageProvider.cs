@@ -149,10 +149,14 @@ public sealed class ImageProvider : IDisposable
     [SuppressMessage("Blocker Bug", "S2930:\"IDisposables\" should be disposed", Justification = "Captured variable shouldn't be disposed in the outer scope")]
     public async Task<IReadOnlyCollection<ImageMetaInfo>> FetchImagesAsync(string query, int limit, CancellationToken cancellationToken = default)
     {
+        var stopwatch = Stopwatch.StartNew();
         var imageSearchResults = await FetchImageCatalogFromLibreYAsync(query, cancellationToken);
+        stopwatch.Stop();
 
-        const int inlineQueryTimeoutSeconds = 9;
-        var parallelForEachCancellationTokenSource = new CancellationTokenSource(TimeSpan.FromSeconds(inlineQueryTimeoutSeconds));
+        var timeoutInSeconds = _options.Value.ImagesFetchTimeoutInSeconds - stopwatch.Elapsed.TotalSeconds;
+        timeoutInSeconds = timeoutInSeconds > 0 ? timeoutInSeconds : _options.Value.ImagesFetchTimeoutInSeconds;
+
+        var parallelForEachCancellationTokenSource = new CancellationTokenSource(TimeSpan.FromSeconds(timeoutInSeconds));
         var parallelForEachCancellationToken = parallelForEachCancellationTokenSource.Token;
         var completedIterations = 0;
         var images = new ConcurrentBag<ImageMetaInfo>();

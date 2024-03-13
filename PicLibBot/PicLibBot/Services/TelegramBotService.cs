@@ -1,5 +1,7 @@
 ﻿using System.Globalization;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using PicLibBot.Models;
 using Telegram.Bot;
 using Telegram.Bot.Exceptions;
 using Telegram.Bot.Polling;
@@ -17,14 +19,17 @@ public sealed class TelegramBotService
     };
 
     private readonly ILogger<TelegramBotService> _logger;
+    private readonly IOptions<PicLibBotOptions> _options;
     private readonly ITelegramBotClient _telegramBotClient;
     private readonly ImageProvider _imageProvider;
 
     public TelegramBotService(ILogger<TelegramBotService> logger,
+        IOptions<PicLibBotOptions> options,
         ITelegramBotClient telegramBotClient,
         ImageProvider imageProvider)
     {
         _logger = logger;
+        _options = options;
         _telegramBotClient = telegramBotClient;
         _imageProvider = imageProvider;
     }
@@ -53,7 +58,7 @@ public sealed class TelegramBotService
                     inlineQuery.Query.Length,
                     inlineQuery.Query);
 
-                const int maxInlineQueryResults = 50;
+                var maxInlineQueryResults = _options.Value.MaxInlineResults;
                 var imagesMetadata = await _imageProvider.FetchImagesAsync(inlineQuery.Query.Trim(), maxInlineQueryResults, cancellationToken);
 
                 var inlineResults = imagesMetadata
