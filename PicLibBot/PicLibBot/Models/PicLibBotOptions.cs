@@ -9,9 +9,6 @@ public sealed class PicLibBotOptions
     public required string TelegramBotApiKey { get; init; }
 
     [Required]
-    public required long TelegramCacheChatId { get; init; }
-
-    [Required]
     [MinLength(1)]
     public required IReadOnlyCollection<string> LibreYApiMirrors { get; init; }
 }

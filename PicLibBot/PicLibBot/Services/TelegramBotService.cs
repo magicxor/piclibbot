@@ -53,12 +53,18 @@ public sealed class TelegramBotService
                     inlineQuery.Query.Length,
                     inlineQuery.Query);
 
-                var photoFileIds = await _imageProvider.FetchAndUploadImagesAsync(_telegramBotClient, inlineQuery.Query.Trim(), 5, cancellationToken);
+                const int maxInlineQueryResults = 50;
+                var imagesMetadata = await _imageProvider.FetchImagesAsync(inlineQuery.Query.Trim(), maxInlineQueryResults, cancellationToken);
 
-                var inlineResults = photoFileIds
-                    .Select((photoFileId, i) => new InlineQueryResultCachedPhoto(
+                var inlineResults = imagesMetadata
+                    .Select((img, i) => new InlineQueryResultPhoto(
                         $"{i}_{DateTime.UtcNow.ToString("yyyy-MM-dd_HH", CultureInfo.InvariantCulture)}",
-                        photoFileId))
+                        img.Url,
+                        img.Url)
+                    {
+                        PhotoWidth = img.Width,
+                        PhotoHeight = img.Height,
+                    })
                     .ToList();
 
                 var cacheTime = inlineResults.Count > 0 ? (int)TimeSpan.FromDays(7).TotalSeconds : 0;

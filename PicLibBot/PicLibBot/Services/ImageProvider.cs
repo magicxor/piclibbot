@@ -130,56 +130,47 @@ public sealed class ImageProvider : IDisposable
             .AsReadOnly();
     }
 
-    private async Task<ImageFile> FetchImageFromExternalSiteAsync(string url, string? alt, CancellationToken cancellationToken = default)
+    private async Task<ImageMetaInfo> FetchImageFromExternalSiteAsync(string url, string? alt, CancellationToken cancellationToken = default)
     {
         var httpClient = _httpClientFactory.CreateClient(nameof(HttpClientTypes.ExternalContent));
-        var response = await httpClient.GetAsync(url, cancellationToken);
+        using var response = await httpClient.GetAsync(url, cancellationToken);
         response.EnsureSuccessStatusCode();
 
-        var resultStream = new MemoryStream();
         await using var sourceStream = await response.Content.ReadAsStreamAsync(cancellationToken);
         using var sourceImage = await Image.LoadAsync(sourceStream, cancellationToken);
 
         var width = sourceImage.Width;
         var height = sourceImage.Height;
+        var format = sourceImage.Metadata.DecodedImageFormat?.Name;
 
-        await sourceImage.SaveAsJpegAsync(resultStream, _jpegEncoder, cancellationToken);
-        resultStream.Position = 0;
-
-        return new ImageFile(resultStream, alt, width, height);
+        return new ImageMetaInfo(url, format, alt, width, height);
     }
 
     [SuppressMessage("Blocker Bug", "S2930:\"IDisposables\" should be disposed", Justification = "Captured variable shouldn't be disposed in the outer scope")]
-    public async Task<IReadOnlyCollection<string>> FetchAndUploadImagesAsync(ITelegramBotClient botClient, string query, int limit = 10, CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyCollection<ImageMetaInfo>> FetchImagesAsync(string query, int limit, CancellationToken cancellationToken = default)
     {
         var imageSearchResults = await FetchImageCatalogFromLibreYAsync(query, cancellationToken);
 
-        var parallelForEachCancellationTokenSource = new CancellationTokenSource();
+        const int inlineQueryTimeoutSeconds = 9;
+        var parallelForEachCancellationTokenSource = new CancellationTokenSource(TimeSpan.FromSeconds(inlineQueryTimeoutSeconds));
         var parallelForEachCancellationToken = parallelForEachCancellationTokenSource.Token;
         var completedIterations = 0;
-        var uploadedFileIds = new ConcurrentBag<string>();
+        var images = new ConcurrentBag<ImageMetaInfo>();
 
         try
         {
             await Parallel.ForEachAsync(imageSearchResults,
-                new ParallelOptions { MaxDegreeOfParallelism = limit, CancellationToken = parallelForEachCancellationToken },
+                new ParallelOptions { CancellationToken = parallelForEachCancellationToken },
                 async (imageSearchResult, token) =>
                 {
                     try
                     {
-                        var fetchedJpegFile = await FetchImageFromExternalSiteAsync(imageSearchResult.Thumbnail, imageSearchResult.Alt, token);
-
-                        var uploadedPhotoMessage = await botClient.SendPhotoAsync(_options.Value.TelegramCacheChatId,
-                            new InputFileStream(fetchedJpegFile.Content),
-                            caption: fetchedJpegFile.Alt,
-                            cancellationToken: token);
-
-                        if (uploadedPhotoMessage.Photo?.FirstOrDefault() != null)
+                        var fileMetaInfo = await FetchImageFromExternalSiteAsync(imageSearchResult.Thumbnail, imageSearchResult.Alt, token);
+                        if ((decimal)fileMetaInfo.Width / (decimal)fileMetaInfo.Height is >= 1.0m and <= 2.3m
+                            || (decimal)fileMetaInfo.Height / (decimal)fileMetaInfo.Width is >= 1.0m and <= 2.3m)
                         {
-                            uploadedFileIds.Add(uploadedPhotoMessage.Photo[0].FileId);
-
+                            images.Add(fileMetaInfo);
                             Interlocked.Increment(ref completedIterations);
-
                             if (completedIterations >= limit || cancellationToken.IsCancellationRequested)
                             {
                                 await parallelForEachCancellationTokenSource.CancelAsync();
@@ -205,7 +196,7 @@ public sealed class ImageProvider : IDisposable
             _logger.LogError(e, "Error while fetching and uploading images");
         }
 
-        return uploadedFileIds;
+        return images;
     }
 
     public void Dispose()
