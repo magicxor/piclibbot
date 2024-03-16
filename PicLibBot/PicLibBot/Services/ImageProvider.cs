@@ -11,16 +11,12 @@ using PicLibBot.Enums;
 using PicLibBot.Models;
 using Refit;
 using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.Formats.Jpeg;
-using Telegram.Bot;
-using Telegram.Bot.Types;
 
 namespace PicLibBot.Services;
 
 public sealed class ImageProvider : IDisposable
 {
     private readonly SemaphoreSlim _semaphoreSlim = new(1, 1);
-    private readonly JpegEncoder _jpegEncoder = new() { Quality = 95, SkipMetadata = true };
 
     private readonly IOptions<PicLibBotOptions> _options;
     private readonly ILogger<ImageProvider> _logger;
