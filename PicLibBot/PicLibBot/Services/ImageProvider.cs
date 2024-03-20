@@ -8,6 +8,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using PicLibBot.Abstractions;
 using PicLibBot.Enums;
+using PicLibBot.Exceptions;
 using PicLibBot.Models;
 using Refit;
 using SixLabors.ImageSharp;
@@ -86,7 +87,7 @@ public sealed class ImageProvider : IDisposable
             .MinBy(mirror => mirror.Value.ResponseTime);
         if (fastestApiMirror.Value == null)
         {
-            throw new SerializationException("No available LibreY API mirrors");
+            throw new ServiceException("No available LibreY API mirrors");
         }
 
         var httpClient = _httpClientFactory.CreateClient(nameof(HttpClientTypes.LibreYCatalog));
