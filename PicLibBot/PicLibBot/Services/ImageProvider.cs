@@ -2,7 +2,6 @@
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using System.Runtime.Serialization;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -48,17 +47,24 @@ public sealed class ImageProvider : IDisposable
                 new ParallelOptions { CancellationToken = cancellationToken },
                 async (baseUrl, currentCancellationToken) =>
             {
-                var httpClient = _httpClientFactory.CreateClient(nameof(HttpClientTypes.LibreYCatalog));
-                httpClient.BaseAddress = new Uri(baseUrl);
-                var api = RestService.For<ILibreYApi>(httpClient);
-
-                var stopwatch = Stopwatch.StartNew();
-                var apiResponse = await api.ListImagesAsync("test", 0, currentCancellationToken);
-                stopwatch.Stop();
-
-                if (apiResponse.Count > 0)
+                try
                 {
-                    _libreYApiMirrors.TryAdd(Guid.NewGuid(), new LibreYApiMirror(baseUrl, stopwatch.Elapsed));
+                    var httpClient = _httpClientFactory.CreateClient(nameof(HttpClientTypes.LibreYCatalog));
+                    httpClient.BaseAddress = new Uri(baseUrl);
+                    var api = RestService.For<ILibreYApi>(httpClient);
+
+                    var stopwatch = Stopwatch.StartNew();
+                    var apiResponse = await api.ListImagesAsync("test", 0, currentCancellationToken);
+                    stopwatch.Stop();
+
+                    if (apiResponse.Count > 0)
+                    {
+                        _libreYApiMirrors.TryAdd(Guid.NewGuid(), new LibreYApiMirror(baseUrl, stopwatch.Elapsed));
+                    }
+                }
+                catch (Exception e)
+                {
+                    _logger.LogWarning(e, "Error while initializing LibreY API mirror {BaseUrl}", baseUrl);
                 }
             });
 
