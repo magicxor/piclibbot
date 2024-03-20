@@ -10,9 +10,6 @@ using PicLibBot.Exceptions;
 using PicLibBot.Extensions;
 using PicLibBot.Models;
 using PicLibBot.Services;
-using Polly;
-using Polly.Contrib.WaitAndRetry;
-using Polly.Extensions.Http;
 using Telegram.Bot;
 using LogLevel = Microsoft.Extensions.Logging.LogLevel;
 
@@ -21,21 +18,6 @@ namespace PicLibBot;
 public static class Program
 {
     private static readonly LoggingConfiguration LoggingConfiguration = new XmlLoggingConfiguration("nlog.config");
-
-    private static readonly IEnumerable<TimeSpan> TelegramDelay = Backoff.DecorrelatedJitterBackoffV2(medianFirstRetryDelay: TimeSpan.FromSeconds(0.3), retryCount: 3);
-    private static readonly IAsyncPolicy<HttpResponseMessage> TelegramRetryPolicy = HttpPolicyExtensions
-        .HandleTransientHttpError()
-        .WaitAndRetryAsync(TelegramDelay);
-
-    private static readonly IEnumerable<TimeSpan> LibreYDelay = Backoff.DecorrelatedJitterBackoffV2(medianFirstRetryDelay: TimeSpan.FromSeconds(0.1), retryCount: 2);
-    private static readonly IAsyncPolicy<HttpResponseMessage> LibreYCatalogRetryPolicy = HttpPolicyExtensions
-        .HandleTransientHttpError()
-        .WaitAndRetryAsync(LibreYDelay);
-
-    private static readonly IEnumerable<TimeSpan> ExternalContentDelay = Backoff.DecorrelatedJitterBackoffV2(medianFirstRetryDelay: TimeSpan.FromSeconds(0.05), retryCount: 3);
-    private static readonly IAsyncPolicy<HttpResponseMessage> ExternalContentRetryPolicy = HttpPolicyExtensions
-        .HandleTransientHttpError()
-        .WaitAndRetryAsync(ExternalContentDelay);
 
     public static void Main(string[] args)
     {
@@ -65,15 +47,15 @@ public static class Program
                         .ValidateOnStart();
 
                     services.AddHttpClient(nameof(HttpClientTypes.Telegram))
-                        .AddPolicyHandler(TelegramRetryPolicy)
+                        .AddPolicyHandler(HttpPolicyProvider.TelegramCombinedPolicy)
                         .AddDefaultLogger();
 
                     services.AddHttpClient(nameof(HttpClientTypes.LibreYCatalog))
-                        .AddPolicyHandler(LibreYCatalogRetryPolicy)
+                        .AddPolicyHandler(HttpPolicyProvider.LibreYCombinedPolicy)
                         .AddDefaultLogger();
 
                     services.AddHttpClient(nameof(HttpClientTypes.ExternalContent))
-                        .AddPolicyHandler(ExternalContentRetryPolicy)
+                        .AddPolicyHandler(HttpPolicyProvider.ExternalContentCombinedPolicy)
                         .AddDefaultLogger();
 
                     var telegramBotApiKey = hostContext.Configuration.GetTelegramBotApiKey()
