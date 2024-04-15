@@ -54,7 +54,8 @@ public sealed class ImageProvider : IDisposable
                     var api = RestService.For<ILibreYApi>(httpClient);
 
                     var stopwatch = Stopwatch.StartNew();
-                    var apiResponse = await api.ListImagesAsync("test", 0, currentCancellationToken);
+                    var apiResponse = JsonSerializer.Deserialize<List<LibreYImageResult>>(
+                        await api.ListImagesAsync("test", 0, currentCancellationToken)) ?? [];
                     stopwatch.Stop();
 
                     if (apiResponse.Count > 0)
@@ -105,7 +106,10 @@ public sealed class ImageProvider : IDisposable
         var stopwatch = Stopwatch.StartNew();
         try
         {
-            apiResponse = await api.ListImagesAsync(query, 0, cancellationToken);
+            var stringResponse = await api.ListImagesAsync(query, 0, cancellationToken);
+            apiResponse = stringResponse.Contains("No results found. Unable to fallback")
+                ? []
+                : JsonSerializer.Deserialize<List<LibreYImageResult>>(stringResponse) ?? [];
             stopwatch.Stop();
             stopwatchElapsed = stopwatch.Elapsed;
 

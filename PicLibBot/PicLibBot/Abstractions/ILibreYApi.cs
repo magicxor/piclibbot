@@ -17,5 +17,5 @@ public interface ILibreYApi
      The API supports both POST and GET requests.
      */
     [Get("/api.php?q={query}&p={page}&t=1")]
-    Task<List<LibreYImageResult>> ListImagesAsync(string query, int page, CancellationToken cancellationToken);
+    Task<string> ListImagesAsync(string query, int page, CancellationToken cancellationToken);
 }
