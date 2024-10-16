@@ -104,9 +104,10 @@ public sealed class ImageProvider : IDisposable
         List<LibreYImageResult> apiResponse = [];
         TimeSpan stopwatchElapsed;
         var stopwatch = Stopwatch.StartNew();
+        string stringResponse = string.Empty;
         try
         {
-            var stringResponse = await api.ListImagesAsync(query, 0, cancellationToken);
+            stringResponse = await api.ListImagesAsync(query, 0, cancellationToken);
             apiResponse = stringResponse.Contains("No results found. Unable to fallback")
                 ? []
                 : JsonSerializer.Deserialize<List<LibreYImageResult>>(stringResponse) ?? [];
@@ -124,12 +125,17 @@ public sealed class ImageProvider : IDisposable
             stopwatchElapsed = stopwatch.Elapsed;
             stopwatchElapsed += TimeSpan.FromSeconds(2);
 
-            _logger.LogError(e, "Error while calling LibreY API mirror {BaseUrl}", fastestApiMirror.Value.BaseUrl);
+            _logger.LogError(e,
+                "Error while calling LibreY API mirror {BaseUrl}; response: {Response}",
+                fastestApiMirror.Value.BaseUrl,
+                stringResponse);
         }
 
         _libreYApiMirrors.TryUpdate(fastestApiMirror.Key,
             fastestApiMirror.Value with { ResponseTime = stopwatchElapsed },
             fastestApiMirror.Value);
+        _logger.LogInformation("LibreY API mirrors updated: {Mirrors}",
+            JsonSerializer.Serialize(_libreYApiMirrors.Values));
 
         return apiResponse
             .DistinctBy(x => x.Thumbnail)
