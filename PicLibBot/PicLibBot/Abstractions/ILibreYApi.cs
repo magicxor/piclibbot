@@ -1,4 +1,3 @@
-﻿using PicLibBot.Models;
 using Refit;
 
 namespace PicLibBot.Abstractions;

@@ -1,4 +1,4 @@
-﻿using System.Globalization;
+using System.Globalization;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using PicLibBot.Models;
@@ -73,7 +73,7 @@ public sealed class TelegramBotService
                     .ToList();
 
                 var cacheTime = inlineResults.Count > 0 ? (int)TimeSpan.FromDays(7).TotalSeconds : 0;
-                await botClient.AnswerInlineQueryAsync(inlineQuery.Id, inlineResults, cacheTime, false, cancellationToken: cancellationToken);
+                await botClient.AnswerInlineQuery(inlineQuery.Id, inlineResults, cacheTime, false, cancellationToken: cancellationToken);
                 _logger.LogInformation("Inline query answered. Sent {Count} results", inlineResults.Count);
             }
         }
@@ -90,7 +90,7 @@ public sealed class TelegramBotService
         if (exception is ApiRequestException apiRequestException)
         {
             _logger.LogError(exception,
-                @"Telegram API Error. ErrorCode={ErrorCode}, RetryAfter={RetryAfter}, MigrateToChatId={MigrateToChatId}",
+                "Telegram API Error. ErrorCode={ErrorCode}, RetryAfter={RetryAfter}, MigrateToChatId={MigrateToChatId}",
                 apiRequestException.ErrorCode,
                 apiRequestException.Parameters?.RetryAfter,
                 apiRequestException.Parameters?.MigrateToChatId);
@@ -107,7 +107,7 @@ public sealed class TelegramBotService
     {
         _telegramBotClient.StartReceiving(
             updateHandler: HandleUpdateAsync,
-            pollingErrorHandler: HandlePollingErrorAsync,
+            errorHandler: HandlePollingErrorAsync,
             receiverOptions: ReceiverOptions,
             cancellationToken: cancellationToken
         );
