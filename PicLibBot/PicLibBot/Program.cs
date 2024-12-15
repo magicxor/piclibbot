@@ -48,15 +48,21 @@ public static class Program
                         .ValidateDataAnnotations()
                         .ValidateOnStart();
 
-                    services.AddHttpClient(nameof(HttpClientTypes.Telegram))
+                    services.AddHttpClient(
+                            nameof(HttpClientTypes.Telegram),
+                            client => client.Timeout = HttpPolicyProvider.RequestTimeout)
                         .AddPolicyHandler(HttpPolicyProvider.TelegramCombinedPolicy)
                         .AddDefaultLogger();
 
-                    services.AddHttpClient(nameof(HttpClientTypes.LibreYCatalog))
+                    services.AddHttpClient(
+                            nameof(HttpClientTypes.LibreYCatalog),
+                            client => client.Timeout = HttpPolicyProvider.RequestTimeout)
                         .AddPolicyHandler(HttpPolicyProvider.LibreYCombinedPolicy)
                         .AddDefaultLogger();
 
-                    services.AddHttpClient(nameof(HttpClientTypes.ExternalContent))
+                    services.AddHttpClient(
+                            nameof(HttpClientTypes.ExternalContent),
+                            client => client.Timeout = HttpPolicyProvider.RequestTimeout)
                         .AddPolicyHandler(HttpPolicyProvider.ExternalContentCombinedPolicy)
                         .AddDefaultLogger();
 

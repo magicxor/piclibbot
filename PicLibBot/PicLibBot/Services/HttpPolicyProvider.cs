@@ -8,6 +8,8 @@ namespace PicLibBot.Services;
 
 public static class HttpPolicyProvider
 {
+    public static readonly TimeSpan RequestTimeout = TimeSpan.FromSeconds(9);
+
     private const int MaxRetryAfterCount = 2;
     private static readonly TimeSpan DefaultRetryAfterTimeout = TimeSpan.FromSeconds(1);
     private static readonly IAsyncPolicy<HttpResponseMessage> RetryAfterPolicy = Policy
