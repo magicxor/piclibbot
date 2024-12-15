@@ -8,6 +8,12 @@ steps:
       PROJECT_IMAGE_NAME: piclibbot
       DOCKER_HOST:
         from_secret: NAS_DOCKER_HOST
+      NAS_CONTAINER_REGISTRY_HOST:
+        from_secret: NAS_CONTAINER_REGISTRY_HOST
+      NAS_CONTAINER_REGISTRY_LOGIN:
+        from_secret: NAS_CONTAINER_REGISTRY_LOGIN
+      NAS_CONTAINER_REGISTRY_PASSWORD:
+        from_secret: NAS_CONTAINER_REGISTRY_PASSWORD
     commands:
       - ls -lh
       - docker info
@@ -16,7 +22,6 @@ steps:
       - CURRENT_IMAGE_NAME=$NAS_CONTAINER_REGISTRY_HOST/$PROJECT_IMAGE_NAME:latest
       - docker build . --progress=plain --file=$PROJECT_DIR/Dockerfile -t $CURRENT_IMAGE_NAME
       - docker push $CURRENT_IMAGE_NAME
-    secrets: [ NAS_CONTAINER_REGISTRY_HOST, NAS_CONTAINER_REGISTRY_LOGIN, NAS_CONTAINER_REGISTRY_PASSWORD, NAS_DOCKER_HOST ]
     when:
       - event: [ push, manual ]
         branch: master
