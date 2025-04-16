@@ -1,6 +1,6 @@
 ﻿namespace PicLibBot.Enums;
 
-public enum OptionSections
+internal enum OptionSections
 {
     PicLibBot,
 }

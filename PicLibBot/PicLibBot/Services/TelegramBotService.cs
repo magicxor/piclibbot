@@ -11,7 +11,7 @@ using Telegram.Bot.Types.InlineQueryResults;
 
 namespace PicLibBot.Services;
 
-public sealed class TelegramBotService
+internal sealed class TelegramBotService
 {
     private static readonly ReceiverOptions ReceiverOptions = new()
     {
@@ -59,9 +59,16 @@ public sealed class TelegramBotService
                     inlineQuery.Query);
 
                 var maxInlineQueryResults = _options.Value.MaxInlineResults;
-                var imagesMetadata = await _imageProvider.FetchImagesAsync(inlineQuery.Query.Trim(), maxInlineQueryResults, cancellationToken);
+                var fetchImagesMetadataResult = await _imageProvider.FetchImagesAsync(inlineQuery.Query.Trim(), maxInlineQueryResults, cancellationToken);
+                if (fetchImagesMetadataResult is { SearchResultsCount: > 0, ImageMetaInfoCollection.Count: 0, MirrorBaseUrl.Length: > 0 })
+                {
+                    _logger.LogWarning("{MirrorBaseUrl} is probably a bad mirror. {ResultCount} results found, but fetched 0 images",
+                        fetchImagesMetadataResult.MirrorBaseUrl,
+                        fetchImagesMetadataResult.SearchResultsCount);
+                }
 
-                var inlineResults = imagesMetadata
+                var inlineResults = fetchImagesMetadataResult
+                    .ImageMetaInfoCollection
                     .Select((img, i) => new InlineQueryResultPhoto(
                         $"{i}_{DateTime.UtcNow.ToString("yyyy-MM-dd_HH", CultureInfo.InvariantCulture)}",
                         img.Url,
@@ -72,7 +79,7 @@ public sealed class TelegramBotService
                     })
                     .ToList();
 
-                var cacheTime = inlineResults.Count > 0 ? (int)TimeSpan.FromDays(7).TotalSeconds : 0;
+                var cacheTime = inlineResults.Count > 0 ? (int)TimeSpan.FromDays(1).TotalSeconds : 0;
                 await botClient.AnswerInlineQuery(inlineQuery.Id, inlineResults, cacheTime, false, cancellationToken: cancellationToken);
                 _logger.LogInformation("Inline query answered. Sent {Count} results", inlineResults.Count);
             }

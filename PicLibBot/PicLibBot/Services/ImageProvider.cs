@@ -14,7 +14,7 @@ using SixLabors.ImageSharp;
 
 namespace PicLibBot.Services;
 
-public sealed class ImageProvider : IDisposable
+internal sealed class ImageProvider : IDisposable
 {
     private readonly SemaphoreSlim _semaphoreSlim = new(1, 1);
 
@@ -81,13 +81,17 @@ public sealed class ImageProvider : IDisposable
         }
     }
 
-    private async Task<IReadOnlyList<LibreYImageResult>> FetchImageCatalogFromLibreYAsync(string query, CancellationToken cancellationToken = default)
+    private async Task<LibreYResult> FetchImageCatalogFromLibreYAsync(string query, CancellationToken cancellationToken = default)
     {
         await InitializeAsync(cancellationToken);
 
         if (string.IsNullOrWhiteSpace(query))
         {
-            return ReadOnlyCollection<LibreYImageResult>.Empty;
+            return new LibreYResult
+            {
+                MirrorBaseUrl = null,
+                ImageResults = ReadOnlyCollection<LibreYImageResult>.Empty,
+            };
         }
 
         var fastestApiMirror = _libreYApiMirrors
@@ -108,7 +112,7 @@ public sealed class ImageProvider : IDisposable
         try
         {
             stringResponse = await api.ListImagesAsync(query, 0, cancellationToken);
-            apiResponse = stringResponse.Contains("No results found. Unable to fallback")
+            apiResponse = stringResponse.Contains("No results found. Unable to fallback", StringComparison.OrdinalIgnoreCase)
                 ? []
                 : JsonSerializer.Deserialize<List<LibreYImageResult>>(stringResponse) ?? [];
             stopwatch.Stop();
@@ -137,13 +141,19 @@ public sealed class ImageProvider : IDisposable
         _logger.LogInformation("LibreY API mirrors updated: {Mirrors}",
             JsonSerializer.Serialize(_libreYApiMirrors.Values));
 
-        return apiResponse
+        var imageResults = apiResponse
             .DistinctBy(x => x.Thumbnail)
             .ToList()
             .AsReadOnly();
+
+        return new LibreYResult
+        {
+            MirrorBaseUrl = fastestApiMirror.Value.BaseUrl,
+            ImageResults = imageResults,
+        };
     }
 
-    private async Task<ImageMetaInfo> FetchImageFromExternalSiteAsync(string url, string? alt, CancellationToken cancellationToken = default)
+    private async Task<ImageMetaInfo> FetchImageFromExternalSiteAsync(Uri url, string? alt, CancellationToken cancellationToken = default)
     {
         var httpClient = _httpClientFactory.CreateClient(nameof(HttpClientTypes.ExternalContent));
         using var response = await httpClient.GetAsync(url, cancellationToken);
@@ -156,41 +166,43 @@ public sealed class ImageProvider : IDisposable
         var height = sourceImage.Height;
         var format = sourceImage.Metadata.DecodedImageFormat?.Name;
 
-        return new ImageMetaInfo(url, format, alt, width, height);
+        return new ImageMetaInfo(url.ToString(), format, alt, width, height);
     }
 
-    [SuppressMessage("Blocker Bug", "S2930:\"IDisposables\" should be disposed", Justification = "Captured variable shouldn't be disposed in the outer scope")]
-    public async Task<IReadOnlyCollection<ImageMetaInfo>> FetchImagesAsync(string query, int limit, CancellationToken cancellationToken = default)
+    public async Task<FetchImagesResult> FetchImagesAsync(string query, int limit, CancellationToken cancellationToken = default)
     {
         var stopwatch = Stopwatch.StartNew();
-        var imageSearchResults = await FetchImageCatalogFromLibreYAsync(query, cancellationToken);
+        var searchResult = await FetchImageCatalogFromLibreYAsync(query, cancellationToken);
         stopwatch.Stop();
 
         var timeoutInSeconds = _options.Value.ImagesFetchTimeoutInSeconds - stopwatch.Elapsed.TotalSeconds;
         timeoutInSeconds = timeoutInSeconds > 0 ? timeoutInSeconds : _options.Value.ImagesFetchTimeoutInSeconds;
 
-        var parallelForEachCancellationTokenSource = new CancellationTokenSource(TimeSpan.FromSeconds(timeoutInSeconds));
+        using var parallelForEachCancellationTokenSource = new CancellationTokenSource(TimeSpan.FromSeconds(timeoutInSeconds));
         var parallelForEachCancellationToken = parallelForEachCancellationTokenSource.Token;
         var completedIterations = 0;
         var images = new ConcurrentBag<ImageMetaInfo>();
 
         try
         {
-            await Parallel.ForEachAsync(imageSearchResults,
+            await Parallel.ForEachAsync(searchResult.ImageResults,
                 new ParallelOptions { CancellationToken = parallelForEachCancellationToken },
                 async (imageSearchResult, token) =>
                 {
                     try
                     {
-                        var fileMetaInfo = await FetchImageFromExternalSiteAsync(imageSearchResult.Thumbnail, imageSearchResult.Alt, token);
-                        if ((decimal)fileMetaInfo.Width / (decimal)fileMetaInfo.Height is >= 1.0m and <= 2.3m
-                            || (decimal)fileMetaInfo.Height / (decimal)fileMetaInfo.Width is >= 1.0m and <= 2.3m)
+                        if (Uri.TryCreate(imageSearchResult.Thumbnail, UriKind.Absolute, out var thumbnailUri))
                         {
-                            images.Add(fileMetaInfo);
-                            Interlocked.Increment(ref completedIterations);
-                            if (completedIterations >= limit || cancellationToken.IsCancellationRequested)
+                            var fileMetaInfo = await FetchImageFromExternalSiteAsync(thumbnailUri, imageSearchResult.Alt, token);
+                            if ((decimal)fileMetaInfo.Width / (decimal)fileMetaInfo.Height is >= 1.0m and <= 2.3m
+                                || (decimal)fileMetaInfo.Height / (decimal)fileMetaInfo.Width is >= 1.0m and <= 2.3m)
                             {
-                                await parallelForEachCancellationTokenSource.CancelAsync();
+                                images.Add(fileMetaInfo);
+                                Interlocked.Increment(ref completedIterations);
+                                if (completedIterations >= limit || cancellationToken.IsCancellationRequested)
+                                {
+                                    await parallelForEachCancellationTokenSource.CancelAsync();
+                                }
                             }
                         }
                     }
@@ -213,7 +225,12 @@ public sealed class ImageProvider : IDisposable
             _logger.LogError(e, "Error while fetching and uploading images");
         }
 
-        return images;
+        return new FetchImagesResult
+        {
+            SearchResultsCount = searchResult.ImageResults.Count,
+            MirrorBaseUrl = searchResult.MirrorBaseUrl,
+            ImageMetaInfoCollection = images,
+        };
     }
 
     public void Dispose()

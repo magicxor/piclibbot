@@ -2,7 +2,7 @@
 
 namespace PicLibBot.Models;
 
-public sealed class PicLibBotOptions
+internal sealed class PicLibBotOptions
 {
     [Required]
     [RegularExpression(@".*:.*")]

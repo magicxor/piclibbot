@@ -16,7 +16,7 @@ using LogLevel = Microsoft.Extensions.Logging.LogLevel;
 
 namespace PicLibBot;
 
-public static class Program
+internal static class Program
 {
     private static readonly LoggingConfiguration LoggingConfiguration = new XmlLoggingConfiguration("nlog.config");
 

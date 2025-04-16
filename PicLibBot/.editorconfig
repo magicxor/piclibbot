@@ -261,11 +261,30 @@ dotnet_diagnostic.IDE0290.severity = none
 # CA1860: Prefer comparing 'Count' to 0 rather than using 'Any()', both for clarity and for performance
 dotnet_diagnostic.CA1860.severity = suggestion
 
+# CA1515: Because an application's API isn't typically referenced from outside the assembly, types can be made internal
+dotnet_diagnostic.CA1515.severity = suggestion
+
+# CA1812 : 'TelegramBotService' is an internal class that is apparently never instantiated. If so, remove the code from the assembly.
+dotnet_diagnostic.CA1812.severity = none
+
 # ReSharper
 resharper_redundant_type_declaration_body_highlighting = none
 
 # SA1010: Opening square brackets should not be preceded by a space.
 dotnet_diagnostic.SA1010.severity = none
+
+# CA2007: Consider calling ConfigureAwait on the awaited task
+# Reason: we don't want to force ConfigureAwait everywhere
+dotnet_diagnostic.CA2007.severity = none
+
+# CA1031: Modify 'FetchImagesAsync' to catch a more specific allowed exception type, or rethrow the exception
+dotnet_diagnostic.CA1031.severity = none
+
+# AsyncFixer03: Avoid unsupported fire-and-forget async-void methods or delegates. Unhandled exceptions will crash the process.
+dotnet_diagnostic.AsyncFixer03.severity = none
+
+# EPC17: Avoid async-void delegates
+dotnet_diagnostic.EPC17.severity = none
 
 # formatting rules
 indent_size = 4

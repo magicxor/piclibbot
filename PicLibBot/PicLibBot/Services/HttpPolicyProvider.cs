@@ -6,7 +6,7 @@ using Polly.Wrap;
 
 namespace PicLibBot.Services;
 
-public static class HttpPolicyProvider
+internal static class HttpPolicyProvider
 {
     public static readonly TimeSpan RequestTimeout = TimeSpan.FromSeconds(9);
 
