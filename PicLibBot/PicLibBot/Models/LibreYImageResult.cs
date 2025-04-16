@@ -2,7 +2,7 @@
 
 namespace PicLibBot.Models;
 
-public sealed class LibreYImageResult
+internal sealed class LibreYImageResult
 {
     [JsonPropertyName("thumbnail")]
     public required string Thumbnail { get; set; }

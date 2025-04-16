@@ -4,7 +4,7 @@ using PicLibBot.Models;
 
 namespace PicLibBot.Extensions;
 
-public static class ConfigurationExtensions
+internal static class ConfigurationExtensions
 {
     public static string? GetTelegramBotApiKey(this IConfiguration configuration)
     {

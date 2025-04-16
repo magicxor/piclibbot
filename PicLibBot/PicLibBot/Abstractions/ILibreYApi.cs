@@ -2,7 +2,7 @@ using Refit;
 
 namespace PicLibBot.Abstractions;
 
-public interface ILibreYApi
+internal interface ILibreYApi
 {
     /*
      see:

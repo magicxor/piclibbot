@@ -3,7 +3,7 @@ using Microsoft.Extensions.Hosting;
 
 namespace PicLibBot.Services;
 
-public sealed class Worker : BackgroundService
+internal sealed class Worker : BackgroundService
 {
     private readonly IServiceScopeFactory _serviceScopeFactory;
     private TelegramBotService? _telegramBotService;

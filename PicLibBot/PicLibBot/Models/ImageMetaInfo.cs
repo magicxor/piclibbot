@@ -1,6 +1,6 @@
 ﻿namespace PicLibBot.Models;
 
-public sealed record ImageMetaInfo(string Url,
+internal sealed record ImageMetaInfo(string Url,
     string? Format,
     string? Alt,
     int Width,
